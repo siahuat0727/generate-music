@@ -57,13 +57,13 @@ class LSTM_model(object):
           tf.concat(0, outputs), self.softmax_w, self.softmax_b)
       loss = tf.reduce_mean(
           tf.nn.softmax_cross_entropy_woth_logits(
-            logits, tf.concat(0, self.train_labels)
+            logits, tf.concat(0, self.train_labels)))
 
     # Optimizer
     global_step = tf.Variable(0)
-    learning_rate = tf.train.exponential_decay(
+    self.learning_rate = tf.train.exponential_decay(
       10.0, global_step, 5000, 0.1, staircase=True)
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate)
+    optimizer = tf.train.GradientDescentOptimizer(self.learning_rate)
     gradients, v = zip(*optimizer.compute_gradients(loss))
     gradients, _ = tf.clip_by_global_norm(gradients, 1.25)
     optimizer = optimizer.apply_gradients(
@@ -81,12 +81,33 @@ class LSTM_model(object):
       saved_sample_state.assign(tf.zeros([1, self.num_nodes])))
     sample_output, sample_state = self._lstm_cel(
       sample_input, saved_sample_output, saved_sample_state)
-    with tf.control_dependencies([saved_output.assign(sample_output),
-                                  saved_state.assign (sample_state )]):
+    with tf.control_dependencies([saved_output.assign(sample_output), 
+                                  saved_state.assign(sample_state )]):
       self._sample_prediction = tf.nn.softmax(tf.nn.xw_plus_b(sample_output, w, b))
 
+  def train(self, num_step, summary_frequency=100):
+    with tf.Session() as session:
+      tf.initialize_all_variables().run()
+      mean_loss = 0
+      for step in range(num_step + 1):
+        batches = # ne # TODO check  type and correctness
+        feed_dict = dict()
+        for train_data, batch in zip(self.train_data, batches):
+          feed_dict[train_data] = batch
+          _, l, predictions, lr = session.run(
+              [optimizer, loss, self._train_prediction, self.learning_rate],
+              feed_dict=feed_dict)
+        mean_loss += l
 
-    
+        if step % summary_frequency == 0:
+          # print mean loss
+          if step > 0:
+            mean_loss = mean_loss / summary_frequency
+          print('Average loss at step %d: %f learning rate: %f' % (
+            step, mean_loss, lr))
+
+          labels = np.concatenate(list(batches)[1:])
+          print
 
 
 
@@ -94,7 +115,3 @@ class LSTM_model(object):
 
 
 
-  
-
-
-    
